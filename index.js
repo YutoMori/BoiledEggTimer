@@ -4,10 +4,18 @@ const Alexa = require('ask-sdk');
  
 const SKILL_NAME = 'ゆで卵タイマー';
 const which_heater = 'IHを使用しますか？ガスを使用しますか？';
+const which_water = '水から作りますか？お湯から作りますか？';
+
+const Again_Message = 'もう一度言ってください';
 
 const heater_list = [
     'ガス',
     'アイエイチ'
+]
+
+const liquid_list = [
+    '水',
+    'お湯'
 ]
 
 let skill;
@@ -17,6 +25,7 @@ exports.handler = async function (event, context) {
         .addRequestHandlers(
             LaunchRequestHandler,
             CookingHeaterHandler,
+            WaterHandler,
             StopIntentHandler,
             SessionEndedRequestHandler,
             ErrorHandler
@@ -54,22 +63,50 @@ const CookingHeaterHandler = {
             && request.intent.name === 'CookingHeaterIntent');
     },
     handle(handlerInput) {
-
         const ask_heater = handlerInput.requestEnvelope.request.intent.slots.Heater.value;
+        handlerInput.attributesManager.setSessionAttributes({'att_heater': ask_heater});
         const heater_message = ask_heater + 'ですね。';
 
         if(heater_list.indexOf(ask_heater) > -1){
             return handlerInput.responseBuilder
-                .speak(heater_message)
+                .speak(heater_message + which_water)
+                .reprompt()
                 .getResponse();
-        }else{
+        } else {
             return handlerInput.responseBuilder
-                .speak('もう一度言ってください')
+                .speak(Again_Message)
                 .reprompt(which_heater)
                 .getResponse();
         }
     }
 };
+
+const WaterHandler = {
+    canHandle(handlerInput) {
+        const request = handlerInput.requestEnvelope.request;
+
+        return request.type === 'IntentRequest'
+            && request.intent.name === 'WaterIntent';
+    },
+    handle(handlerInput) {
+        const ask_water = handlerInput.requestEnvelope.request.intent.slots.Liquid.value;
+        const water_message = ask_water + 'ですね。';
+        const asked_heater = handlerInput.attributesManager.getSessionAttributes().att_heater;
+
+        if(liquid_list.indexOf(ask_water) > -1){
+            return handlerInput.responseBuilder
+                .speak(water_message+asked_heater)
+                .getResponse();
+        } else {
+            return handlerInput.responseBuilder
+                .speak(Again_Message)
+                .reprompt(which_water)
+                .getResponse();
+        }
+
+
+    }
+}
 
 const StopIntentHandler = {
 
