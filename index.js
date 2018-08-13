@@ -24,7 +24,7 @@ const liquid_list = [
 let skill;
 exports.handler = async function (event, context) {
     if (!skill) {
-      skill = Alexa.SkillBuilders.custom()
+      skill = Alexa.SkillBuilders.standard()
         .addRequestHandlers(
             LaunchRequestHandler,
             CookingHeaterHandler,
@@ -34,6 +34,8 @@ exports.handler = async function (event, context) {
             SessionEndedRequestHandler,
             ErrorHandler
         )
+        .withTableName("HeaterTable")
+        .withAutoCreateTable(true) // テーブル作成をスキルから行う
         .create();
     }
     return skill.invoke(event);
@@ -65,14 +67,28 @@ const CookingHeaterHandler = {
             || (request.type === 'IntentRequest'
             && request.intent.name === 'CookingHeaterIntent');
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {
         const ask_heater = handlerInput.requestEnvelope.request.intent.slots.Heater.value;
-        const heater_message = ask_heater + 'ですね。';
+        const heater_message = ask_heater + 'desune.';
+
+        // dynamoDBからheater情報を取得
+        var persistentAttributes = await handlerInput.attributesManager.getPersistentAttributes();
 
         if(heater_list.indexOf(ask_heater) > -1){
-
+            
             // heaterの種類を受け取ったらSessionAttributesに保存する
-            handlerInput.attributesManager.setSessionAttributes({'att_heater': ask_heater});
+            // handlerInput.attributesManager.setSessionAttributes({'att_heater': ask_heater});
+            // handlerInput.attributesManager.setPersistentAttributes(ask_heater);
+            
+            persistentAttributes = {
+                "key" : ask_heater
+            }
+
+            // dynamoDBへheater情報を保存
+            handlerInput.attributesManager.setPersistentAttributes(persistentAttributes);
+            await handlerInput.attributesManager.savePersistentAttributes();
+            
+            //var attributes_heater = await handlerInput.attributesManager.getPersistentAttributesz();
 
             return handlerInput.responseBuilder
                 .speak(heater_message + which_water)
