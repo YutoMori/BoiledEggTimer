@@ -34,8 +34,8 @@ exports.handler = async function (event, context) {
             SessionEndedRequestHandler,
             ErrorHandler
         )
-        .withTableName("HeaterTable")
-        .withAutoCreateTable(true) // テーブル作成をスキルから行う
+        .withTableName("HeaterTable")   // テーブル名を決定
+        .withAutoCreateTable(true)      // テーブル作成をスキルから行う
         .create();
     }
     return skill.invoke(event);
@@ -69,16 +69,12 @@ const CookingHeaterHandler = {
     },
     async handle(handlerInput) {
         const ask_heater = handlerInput.requestEnvelope.request.intent.slots.Heater.value;
-        const heater_message = ask_heater + 'desune.';
+        const heater_message = ask_heater + 'ですね。';
 
         // dynamoDBからheater情報を取得
         var persistentAttributes = await handlerInput.attributesManager.getPersistentAttributes();
 
         if(heater_list.indexOf(ask_heater) > -1){
-            
-            // heaterの種類を受け取ったらSessionAttributesに保存する
-            // handlerInput.attributesManager.setSessionAttributes({'att_heater': ask_heater});
-            // handlerInput.attributesManager.setPersistentAttributes(ask_heater);
             
             persistentAttributes = {
                 "key" : ask_heater
@@ -88,8 +84,6 @@ const CookingHeaterHandler = {
             handlerInput.attributesManager.setPersistentAttributes(persistentAttributes);
             await handlerInput.attributesManager.savePersistentAttributes();
             
-            //var attributes_heater = await handlerInput.attributesManager.getPersistentAttributesz();
-
             return handlerInput.responseBuilder
                 .speak(heater_message + which_water)
                 .reprompt(ask_heater_message)
@@ -110,13 +104,13 @@ const WaterHandler = {
         return request.type === 'IntentRequest'
             && request.intent.name === 'WaterIntent';
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {
         const ask_water = handlerInput.requestEnvelope.request.intent.slots.Liquid.value;
         const water_message = ask_water + 'ですね。';
-        const asked_heater = handlerInput.attributesManager.getSessionAttributes().att_heater;
+        var persistentAttributes = await handlerInput.attributesManager.getPersistentAttributes();
 
         // heater情報が未設定
-        if(!asked_heater){
+        if(!(persistentAttributes.key == 'ガス' || persistentAttributes.key == 'アイエイチ')){
             return handlerInput.responseBuilder
                 .speak('クッキングヒーターが未設定です。' + which_heater)
                 .reprompt(ask_heater_message)
@@ -126,7 +120,7 @@ const WaterHandler = {
         if(liquid_list.indexOf(ask_water) > -1){
             handlerInput.attributesManager.setSessionAttributes({'att_water': ask_water});
             return handlerInput.responseBuilder
-                .speak(water_message + '茹で加減はどうしますか？')
+                .speak(persistentAttributes.key +  water_message + '茹で加減はどうしますか？')
                 .reprompt(ask_water_message)
                 .getResponse();
         } else {
@@ -135,8 +129,6 @@ const WaterHandler = {
                 .reprompt(which_water)
                 .getResponse();
         }
-
-
     }
 };
 
@@ -147,20 +139,19 @@ const BoiledHandle = {
         return request.type === 'IntentRequest'
             && request.intent.name === 'BoiledIntent';
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {
         const ask_boiled = handlerInput.requestEnvelope.request.intent.slots.Boiled.value;
         const boiled_message = ask_boiled + 'ですね。';
 
-        const asked_heater = handlerInput.attributesManager.getSessionAttributes().att_heater;
-        // heater情報が未設定(TODO: DynamoDBに入れる)
-        /*
-        if(!asked_heater){
+        var persistentAttributes = await handlerInput.attributesManager.getPersistentAttributes();
+        // heater情報が未設定
+        if(!(persistentAttributes.key == 'ガス' || persistentAttributes.key == 'アイエイチ')){
             return handlerInput.responseBuilder
                 .speak('クッキングヒーターが未設定です。' + which_heater)
                 .reprompt(ask_heater_message)
                 .getResponse();
         }
-        */
+
         const asked_water = handlerInput.attributesManager.getSessionAttributes().att_water;
         // water情報が未設定
         if(!asked_water){
