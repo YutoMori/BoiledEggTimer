@@ -227,7 +227,7 @@ const WaterHandler = {
         if(liquid_list.indexOf(ask_water) > -1){
             handlerInput.attributesManager.setSessionAttributes({'att_water': ask_water});
             return handlerInput.responseBuilder
-                .speak(water_message + '茹で加減はどうしますか？')
+                .speak(water_message + '茹で加減はどうしますか？例えば、やや半熟。のように言ってください。')
                 .reprompt(ask_water_message)
                 .getResponse();
         } else {
